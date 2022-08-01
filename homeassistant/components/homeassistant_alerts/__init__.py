@@ -9,9 +9,10 @@ import logging
 import aiohttp
 from awesomeversion import AwesomeVersion, AwesomeVersionStrategy
 
-from homeassistant.const import __version__
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.const import EVENT_COMPONENT_LOADED, __version__
+from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.debounce import Debouncer
 from homeassistant.helpers.issue_registry import (
     IssueSeverity,
     async_create_issue,
@@ -22,6 +23,7 @@ from homeassistant.helpers.typing import ConfigType
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util.yaml import parse_yaml
 
+COMPONENT_LOADED_COOLDOWN = 30
 DOMAIN = "homeassistant_alerts"
 UPDATE_INTERVAL = timedelta(hours=3)
 _LOGGER = logging.getLogger(__name__)
@@ -106,7 +108,19 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     coordinator.async_add_listener(async_schedule_update_alerts)
 
     async def initial_refresh(hass: HomeAssistant) -> None:
+        refresh_debouncer = Debouncer(
+            hass,
+            _LOGGER,
+            cooldown=COMPONENT_LOADED_COOLDOWN,
+            immediate=False,
+            function=coordinator.async_refresh,
+        )
+
+        async def _component_loaded(_: Event) -> None:
+            await refresh_debouncer.async_call()
+
         await coordinator.async_refresh()
+        hass.bus.async_listen(EVENT_COMPONENT_LOADED, _component_loaded)
 
     async_at_start(hass, initial_refresh)
 
