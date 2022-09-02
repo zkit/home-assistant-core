@@ -259,7 +259,6 @@ async def test_loading_saving_data(hass, registry):
     )
     orig_entry2 = registry.async_get(orig_entry2.entity_id)
     orig_entry3 = registry.async_get_or_create("light", "hue", "ABCD")
-    orig_entry3 = registry.async_update_entity(orig_entry3.entity_id, area_id="area_52")
     orig_entry4 = registry.async_get_or_create("light", "hue", "EFGH")
     registry.async_remove(orig_entry3.entity_id)
     registry.async_remove(orig_entry4.entity_id)
@@ -507,24 +506,6 @@ async def test_removing_area_id(registry):
 
     assert not entry_wo_area.area_id
     assert entry_w_area != entry_wo_area
-
-
-async def test_deleted_entity_removing_area_id(registry):
-    """Make sure we can clear area id of deleted entity."""
-    entry = registry.async_get_or_create("light", "hue", "5678")
-    entry_w_area = registry.async_update_entity(entry.entity_id, area_id="12345A")
-    registry.async_remove(entry.entity_id)
-
-    restored_entry_w_area = registry.async_get_or_create("light", "hue", "5678")
-    assert entry_w_area == restored_entry_w_area
-
-    registry.async_remove(entry.entity_id)
-    registry.async_clear_area_id("12345A")
-
-    restored_entry_wo_area = registry.async_get_or_create("light", "hue", "5678")
-
-    assert not restored_entry_wo_area.area_id
-    assert entry_w_area != restored_entry_wo_area
 
 
 @pytest.mark.parametrize("load_registries", [False])
@@ -1545,7 +1526,7 @@ async def test_restore_entity(hass, update_events, freezer):
     entry3 = registry.async_get_or_create("light", "hue", "ABCD")
 
     entry1 = registry.async_update_entity(
-        entry1.entity_id, area_id="area_52", new_entity_id="light.custom_1"
+        entry1.entity_id, new_entity_id="light.custom_1"
     )
     entry3 = registry.async_update_entity(
         entry3.entity_id, new_entity_id="light.custom_3"
