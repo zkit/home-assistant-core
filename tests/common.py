@@ -453,6 +453,7 @@ def mock_registry(hass, mock_entries=None):
     if mock_entries is None:
         mock_entries = {}
     registry.entities = entity_registry.EntityRegistryItems()
+    registry.deleted_entities = {}
     for key, entry in mock_entries.items():
         registry.entities[key] = entry
 
