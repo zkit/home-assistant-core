@@ -61,7 +61,7 @@ SAVE_DELAY = 10
 _LOGGER = logging.getLogger(__name__)
 
 STORAGE_VERSION_MAJOR = 1
-STORAGE_VERSION_MINOR = 8
+STORAGE_VERSION_MINOR = 9
 STORAGE_KEY = "core.entity_registry"
 
 # Attributes relevant to describing entity
@@ -113,6 +113,7 @@ class RegistryEntry:
     icon: str | None = attr.ib(default=None)
     id: str = attr.ib(factory=uuid_util.random_uuid_hex)
     has_entity_name: bool = attr.ib(default=False)
+    labels: set[str] = attr.ib(factory=set)
     name: str | None = attr.ib(default=None)
     options: Mapping[str, Mapping[str, Any]] = attr.ib(
         default=None, converter=attr.converters.default_if_none(factory=dict)  # type: ignore[misc]
@@ -230,6 +231,11 @@ class EntityRegistryStore(storage.Store):
                 if domain in [Platform.BINARY_SENSOR, Platform.COVER]:
                     continue
                 entity["device_class"] = None
+
+        if old_major_version == 1 and old_minor_version < 9:
+            # Version 1.9 adds labels
+            for entity in data["entities"]:
+                entity["labels"] = []
 
         if old_major_version > 1:
             raise NotImplementedError
@@ -563,19 +569,20 @@ class EntityRegistry:
         device_id: str | None | UndefinedType = UNDEFINED,
         disabled_by: RegistryEntryDisabler | None | UndefinedType = UNDEFINED,
         entity_category: EntityCategory | None | UndefinedType = UNDEFINED,
+        has_entity_name: bool | UndefinedType = UNDEFINED,
         hidden_by: RegistryEntryHider | None | UndefinedType = UNDEFINED,
         icon: str | None | UndefinedType = UNDEFINED,
-        has_entity_name: bool | UndefinedType = UNDEFINED,
+        labels: set[str] | UndefinedType = UNDEFINED,
         name: str | None | UndefinedType = UNDEFINED,
         new_entity_id: str | UndefinedType = UNDEFINED,
         new_unique_id: str | UndefinedType = UNDEFINED,
+        options: Mapping[str, Mapping[str, Any]] | UndefinedType = UNDEFINED,
         original_device_class: str | None | UndefinedType = UNDEFINED,
         original_icon: str | None | UndefinedType = UNDEFINED,
         original_name: str | None | UndefinedType = UNDEFINED,
+        platform: str | None | UndefinedType = UNDEFINED,
         supported_features: int | UndefinedType = UNDEFINED,
         unit_of_measurement: str | None | UndefinedType = UNDEFINED,
-        platform: str | None | UndefinedType = UNDEFINED,
-        options: Mapping[str, Mapping[str, Any]] | UndefinedType = UNDEFINED,
     ) -> RegistryEntry:
         """Private facing update properties method."""
         old = self.entities[entity_id]
@@ -613,17 +620,18 @@ class EntityRegistry:
             ("device_id", device_id),
             ("disabled_by", disabled_by),
             ("entity_category", entity_category),
+            ("has_entity_name", has_entity_name),
             ("hidden_by", hidden_by),
             ("icon", icon),
-            ("has_entity_name", has_entity_name),
+            ("labels", labels),
             ("name", name),
+            ("options", options),
             ("original_device_class", original_device_class),
             ("original_icon", original_icon),
             ("original_name", original_name),
+            ("platform", platform),
             ("supported_features", supported_features),
             ("unit_of_measurement", unit_of_measurement),
-            ("platform", platform),
-            ("options", options),
         ):
             if value is not UNDEFINED and value != getattr(old, attr_name):
                 new_values[attr_name] = value
@@ -687,9 +695,10 @@ class EntityRegistry:
         device_id: str | None | UndefinedType = UNDEFINED,
         disabled_by: RegistryEntryDisabler | None | UndefinedType = UNDEFINED,
         entity_category: EntityCategory | None | UndefinedType = UNDEFINED,
+        has_entity_name: bool | UndefinedType = UNDEFINED,
         hidden_by: RegistryEntryHider | None | UndefinedType = UNDEFINED,
         icon: str | None | UndefinedType = UNDEFINED,
-        has_entity_name: bool | UndefinedType = UNDEFINED,
+        labels: set[str] | UndefinedType = UNDEFINED,
         name: str | None | UndefinedType = UNDEFINED,
         new_entity_id: str | UndefinedType = UNDEFINED,
         new_unique_id: str | UndefinedType = UNDEFINED,
@@ -709,9 +718,10 @@ class EntityRegistry:
             device_id=device_id,
             disabled_by=disabled_by,
             entity_category=entity_category,
+            has_entity_name=has_entity_name,
             hidden_by=hidden_by,
             icon=icon,
-            has_entity_name=has_entity_name,
+            labels=labels,
             name=name,
             new_entity_id=new_entity_id,
             new_unique_id=new_unique_id,
@@ -795,12 +805,13 @@ class EntityRegistry:
                     if entity["entity_category"]
                     else None,
                     entity_id=entity["entity_id"],
+                    has_entity_name=entity["has_entity_name"],
                     hidden_by=RegistryEntryHider(entity["hidden_by"])
                     if entity["hidden_by"]
                     else None,
                     icon=entity["icon"],
                     id=entity["id"],
-                    has_entity_name=entity["has_entity_name"],
+                    labels=set(entity["labels"]),
                     name=entity["name"],
                     options=entity["options"],
                     original_device_class=entity["original_device_class"],
@@ -834,10 +845,11 @@ class EntityRegistry:
                 "disabled_by": entry.disabled_by,
                 "entity_category": entry.entity_category,
                 "entity_id": entry.entity_id,
+                "has_entity_name": entry.has_entity_name,
                 "hidden_by": entry.hidden_by,
                 "icon": entry.icon,
                 "id": entry.id,
-                "has_entity_name": entry.has_entity_name,
+                "labels": list(entry.labels),
                 "name": entry.name,
                 "options": entry.options,
                 "original_device_class": entry.original_device_class,
@@ -869,6 +881,15 @@ class EntityRegistry:
         for entity_id, entry in self.entities.items():
             if area_id == entry.area_id:
                 self.async_update_entity(entity_id, area_id=None)
+
+    @callback
+    def async_clear_label_id(self, label_id: str) -> None:
+        """Clear label from registry entries."""
+        for entity_id, entry in self.entities.items():
+            if label_id in entry.labels:
+                labels = entry.labels.copy()
+                labels.remove(label_id)
+                self.async_update_entity(entity_id, labels=labels)
 
 
 @callback
@@ -915,6 +936,14 @@ def async_entries_for_area(
 ) -> list[RegistryEntry]:
     """Return entries that match an area."""
     return [entry for entry in registry.entities.values() if entry.area_id == area_id]
+
+
+@callback
+def async_entries_for_label(
+    registry: EntityRegistry, label_id: str
+) -> list[RegistryEntry]:
+    """Return entries that match an label."""
+    return [entry for entry in registry.entities.values() if label_id in entry.labels]
 
 
 @callback
