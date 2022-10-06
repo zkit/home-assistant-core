@@ -7,10 +7,11 @@ from random import random
 
 from homeassistant import config_entries, setup
 from homeassistant.components import persistent_notification
-from homeassistant.components.recorder import get_instance
+from homeassistant.components.recorder import DOMAIN as RECORDER_DOMAIN, get_instance
 from homeassistant.components.recorder.models import StatisticData, StatisticMetaData
 from homeassistant.components.recorder.statistics import (
     async_add_external_statistics,
+    async_import_statistics,
     get_last_statistics,
 )
 from homeassistant.config_entries import ConfigEntry
@@ -354,6 +355,55 @@ async def _insert_statistics(hass: HomeAssistant) -> None:
         "has_sum": True,
     }
     await _insert_sum_statistics(hass, metadata, yesterday_midnight, today_midnight, 15)
+
+    # Add some statistics which will raise an issue
+    # Used to raise an issue where the unit has changed to a non volume unit
+    metadata = {
+        "source": RECORDER_DOMAIN,
+        "name": None,
+        "statistic_id": "sensor.statistics_issue_1",
+        "unit_of_measurement": VOLUME_CUBIC_METERS,
+        "has_mean": True,
+        "has_sum": False,
+    }
+    statistics = _generate_mean_statistics(yesterday_midnight, today_midnight, 15, 1)
+    async_import_statistics(hass, metadata, statistics)
+
+    # Used to raise an issue where the unit has changed to a different unit
+    metadata = {
+        "source": RECORDER_DOMAIN,
+        "name": None,
+        "statistic_id": "sensor.statistics_issue_2",
+        "unit_of_measurement": "cats",
+        "has_mean": True,
+        "has_sum": False,
+    }
+    statistics = _generate_mean_statistics(yesterday_midnight, today_midnight, 15, 1)
+    async_import_statistics(hass, metadata, statistics)
+
+    # Used to raise an issue where state class is not compatible with statistics
+    metadata = {
+        "source": RECORDER_DOMAIN,
+        "name": None,
+        "statistic_id": "sensor.statistics_issue_3",
+        "unit_of_measurement": VOLUME_CUBIC_METERS,
+        "has_mean": True,
+        "has_sum": False,
+    }
+    statistics = _generate_mean_statistics(yesterday_midnight, today_midnight, 15, 1)
+    async_import_statistics(hass, metadata, statistics)
+
+    # Used to raise an issue where the sensor is not in the state machine
+    metadata = {
+        "source": RECORDER_DOMAIN,
+        "name": None,
+        "statistic_id": "sensor.statistics_issue_4",
+        "unit_of_measurement": VOLUME_CUBIC_METERS,
+        "has_mean": True,
+        "has_sum": False,
+    }
+    statistics = _generate_mean_statistics(yesterday_midnight, today_midnight, 15, 1)
+    async_import_statistics(hass, metadata, statistics)
 
 
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:

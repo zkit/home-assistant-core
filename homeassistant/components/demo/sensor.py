@@ -126,6 +126,33 @@ async def async_setup_platform(
                 None,
                 "total_gas_ft3",
             ),
+            DemoSensor(
+                "statistics_issue_1",
+                "Statistics issue 1",
+                100,
+                None,
+                SensorStateClass.MEASUREMENT,
+                POWER_WATT,  # Not a volume unit
+                None,
+            ),
+            DemoSensor(
+                "statistics_issue_2",
+                "Statistics issue 2",
+                100,
+                None,
+                SensorStateClass.MEASUREMENT,
+                "dogs",  # Can't be converted to cats
+                None,
+            ),
+            DemoSensor(
+                "statistics_issue_3",
+                "Statistics issue 3",
+                100,
+                None,
+                None,  # Wrong state class
+                POWER_WATT,
+                None,
+            ),
         ]
     )
 
@@ -149,7 +176,7 @@ class DemoSensor(SensorEntity):
         unique_id: str,
         name: str,
         state: StateType,
-        device_class: SensorDeviceClass,
+        device_class: SensorDeviceClass | None,
         state_class: SensorStateClass | None,
         unit_of_measurement: str | None,
         battery: StateType,
