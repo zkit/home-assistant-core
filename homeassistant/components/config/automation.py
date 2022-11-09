@@ -20,11 +20,10 @@ async def async_setup(hass: HomeAssistant):
 
     async def hook(action, config_key):
         """post_write_hook for Config View that reloads automations."""
-        await hass.services.async_call(
-            DOMAIN, SERVICE_RELOAD_AUTOMATION, {CONF_ID: config_key}
-        )
-
         if action != ACTION_DELETE:
+            await hass.services.async_call(
+                DOMAIN, SERVICE_RELOAD_AUTOMATION, {CONF_ID: config_key}
+            )
             return
 
         ent_reg = entity_registry.async_get(hass)
