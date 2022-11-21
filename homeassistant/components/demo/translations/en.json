@@ -33,6 +33,9 @@
     },
     "options": {
         "step": {
+            "init": {
+                "data": {}
+            },
             "options_1": {
                 "data": {
                     "bool": "Optional boolean",
