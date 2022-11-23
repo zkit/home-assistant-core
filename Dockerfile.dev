@@ -11,7 +11,7 @@ RUN pipx uninstall pycodestyle
 RUN pipx uninstall mypy
 RUN pipx uninstall pylint
 
-RUN sed -i "s@http://\(deb\|security\).debian.org@https://mirrors.aliyun.com@g" /etc/apt/sources.list
+RUN sed -i "s@http://\(deb\|security\).debian.org@https://mirror.sjtu.edu.cn@g" /etc/apt/sources.list
 
 RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
 RUN apt-get update
@@ -38,16 +38,16 @@ WORKDIR /usr/src
 
 # Setup hass-release
 RUN git clone --depth 1 https://ghproxy.com/https://github.com/home-assistant/hass-release.git \
-    && pip3 install -i https://mirrors.aliyun.com/pypi/simple/ -e hass-release/
+    && pip3 install -i https://mirror.sjtu.edu.cn/pypi/web/simple -e hass-release/
 
 WORKDIR /workspaces
 
 # Install Python dependencies from requirements
 COPY requirements.txt ./
 COPY homeassistant/package_constraints.txt homeassistant/package_constraints.txt
-RUN pip3 install -i https://mirrors.aliyun.com/pypi/simple/ -r requirements.txt --use-deprecated=legacy-resolver
+RUN pip3 install -i https://mirror.sjtu.edu.cn/pypi/web/simple -r requirements.txt --use-deprecated=legacy-resolver
 COPY requirements_test.txt requirements_test_pre_commit.txt ./
-RUN pip3 install -i https://mirrors.aliyun.com/pypi/simple/ -r requirements_test.txt --use-deprecated=legacy-resolver
+RUN pip3 install -i https://mirror.sjtu.edu.cn/pypi/web/simple -r requirements_test.txt --use-deprecated=legacy-resolver
 RUN rm -rf requirements.txt requirements_test.txt requirements_test_pre_commit.txt homeassistant/
 
 # Set the default shell to bash instead of sh
