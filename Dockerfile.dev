@@ -11,11 +11,11 @@ RUN pipx uninstall pycodestyle
 RUN pipx uninstall mypy
 RUN pipx uninstall pylint
 
-RUN \
-    curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
-    && apt-get update \
-    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        # Additional library needed by some tests and accordingly by VScode Tests Discovery
+RUN sed -i "s@http://\(deb\|security\).debian.org@https://mirrors.aliyun.com@g" /etc/apt/sources.list
+
+RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
+RUN apt-get update
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
         bluez \
         libudev-dev \
         libavformat-dev \
@@ -30,24 +30,24 @@ RUN \
         libyaml-dev \
         libxml2 \
         git \
-        cmake \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+        cmake
+RUN apt-get clean
+RUN rm -rf /var/lib/apt/lists/*
 
 WORKDIR /usr/src
 
 # Setup hass-release
-RUN git clone --depth 1 https://github.com/home-assistant/hass-release \
-    && pip3 install -e hass-release/
+RUN git clone --depth 1 https://ghproxy.com/https://github.com/home-assistant/hass-release.git \
+    && pip3 install -i https://mirrors.aliyun.com/pypi/simple/ -e hass-release/
 
 WORKDIR /workspaces
 
 # Install Python dependencies from requirements
 COPY requirements.txt ./
 COPY homeassistant/package_constraints.txt homeassistant/package_constraints.txt
-RUN pip3 install -r requirements.txt --use-deprecated=legacy-resolver
+RUN pip3 install -i https://mirrors.aliyun.com/pypi/simple/ -r requirements.txt --use-deprecated=legacy-resolver
 COPY requirements_test.txt requirements_test_pre_commit.txt ./
-RUN pip3 install -r requirements_test.txt --use-deprecated=legacy-resolver
+RUN pip3 install -i https://mirrors.aliyun.com/pypi/simple/ -r requirements_test.txt --use-deprecated=legacy-resolver
 RUN rm -rf requirements.txt requirements_test.txt requirements_test_pre_commit.txt homeassistant/
 
 # Set the default shell to bash instead of sh
