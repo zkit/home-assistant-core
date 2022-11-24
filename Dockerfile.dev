@@ -11,6 +11,10 @@ RUN pipx uninstall pycodestyle
 RUN pipx uninstall mypy
 RUN pipx uninstall pylint
 
+# 使用国内镜像
+RUN sed -i "s@http://\(deb\|security\).debian.org@https://mirror.sjtu.edu.cn@g" /etc/apt/sources.list
+RUN pip config set global.index-url https://mirror.sjtu.edu.cn/pypi/web/simple
+
 RUN \
     curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
     && apt-get update \
@@ -37,7 +41,7 @@ RUN \
 WORKDIR /usr/src
 
 # Setup hass-release
-RUN git clone --depth 1 https://github.com/home-assistant/hass-release \
+RUN git clone --depth 1 https://ghproxy.com/https://github.com/home-assistant/hass-release \
     && pip3 install -e hass-release/
 
 WORKDIR /workspaces

@@ -6,6 +6,9 @@ set -e
 
 cd "$(dirname "$0")/.."
 
+# 使用国内镜像
+python3 -m pip config set global.index-url https://mirror.sjtu.edu.cn/pypi/web/simple
+
 echo "Installing development dependencies..."
 python3 -m pip install wheel --constraint homeassistant/package_constraints.txt
 python3 -m pip install colorlog pre-commit $(grep mypy requirements_test.txt) $(grep stdlib-list requirements_test.txt) $(grep tqdm requirements_test.txt) $(grep pipdeptree requirements_test.txt) $(grep awesomeversion requirements.txt) --constraint homeassistant/package_constraints.txt --use-deprecated=legacy-resolver
